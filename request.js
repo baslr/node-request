@@ -10,7 +10,6 @@ const httpsAgent = new https.Agent({ keepAlive: true });
 
 
 function RawRequest(opts, cb) {
-    // console.log(opts.hostname, opts.path, opts.tries);
     let errorOccured = false;
 
     if (opts.setContentLength && (opts.buffer instanceof Buffer)) {
