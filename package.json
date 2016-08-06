@@ -1,6 +1,6 @@
 {
   "name": "request-easy",
-  "version": "1.0.0-beta1",
+  "version": "1.0.0-beta1.0",
   "description": "request simplified",
   "main": "request.js",
   "repository": {
