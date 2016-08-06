@@ -3,83 +3,11 @@
 const crypto = require('crypto');
 const https =  require('https');
 const http  =  require('http');
-const zlib  =  require('zlib');
+
+const rawRequest = require('./rawRequest');
 
 const httpAgent  = new http.Agent({  keepAlive: true });
 const httpsAgent = new https.Agent({ keepAlive: true });
-
-
-function RawRequest(opts, cb) {
-    let errorOccured = false;
-
-    if (opts.setContentLength && (opts.buffer instanceof Buffer)) {
-        opts.headers['content-length'] = opts.buffer.length;
-        // console.log('Request: set content length', opts.buffer.length);
-    } // if
-  
-    const req = opts.con.request(opts);
-  
-    req.on('error', (e) => {
-        errorOccured = true;
-        cb(e);
-    });
-
-    req.on('response', (res) => {
-        // console.log(`${opts.id} - Request: onResponse`);
-        const length = Number(res.headers['content-length']);
-        let buf;
-        let i = 0;
-  
-        if (length) {
-            buf = Buffer.alloc(length);
-            // console.log('Prealloc buffer', length);
-        } else {
-            buf = Buffer.alloc(0);
-        }
-
-        res.on('data', (d) => {
-            if(length) {
-                d.copy(buf, i);
-                i += d.length;
-            } else {
-                buf = Buffer.concat([buf, d]);
-            }
-        });
-        res.on('end', () => {
-            if (errorOccured) {
-                console.log(`${opts.id} - Request: Response end doesn't callback because of a request error`);
-                return;
-            } // if
-
-            // console.log(`${opts.id} - Request: Response end`);
-            if (opts.method === 'HEAD') {
-                cb(null, res.statusCode, res.headers, buf);
-                return;
-            } // if
-
-            switch(res.headers['content-encoding']) {
-                case 'gzip':
-                    zlib.unzip(buf, (err, buf) => {
-                        cb(err, res.statusCode, res.headers, buf);
-                    });
-                    break;
-
-                default:
-                    cb(null, res.statusCode, res.headers, buf);
-                    break;
-            } // switch
-        });
-    });
-  
-    if (opts.buffer) {
-        req.write(opts.buffer);
-        req.end();
-    } else if (opts.stream) {
-        opts.stream.pipe(req);
-    } else {
-        req.end();
-    }
-}
 
 
 class Request {
@@ -106,12 +34,11 @@ class Request {
     post(opts, cb) { this.doRequest(opts, 'POST', cb); }
 
 
-
     doRequest(opts, method, cb) {
         const reqOpts = this.reqOpts(opts);
         reqOpts.method = method;
 
-        RawRequest(reqOpts, (err, status, headers, body) => {
+        rawRequest(reqOpts, (err, status, headers, body) => {
           this.handleResponse(reqOpts, cb, err, status, headers, body);
         });
     }
@@ -164,19 +91,12 @@ class Request {
             if (handler[onStatus]) {
                 handler[onStatus](reqOpts, cb, err, status, headers, body);
             } else {
-                if (200 <= status && status < 300) {
-                    cb(status, headers, body);
-                    return;
-                }
-
                 if(500 <= status && status < 600) {
                     const enoughtTriesLeft = reqOpts.maxTries ? reqOpts.maxTries >= reqOpts.tries : true;
                     if (reqOpts.retryOn5xx && enoughtTriesLeft) {
                         handler[reqOpts.method.toLowerCase()](reqOpts, cb);
                         return;
                     }
-                    cb(status, headers, body);
-                    return;
                 } // if
 
                 cb(status, headers, body);

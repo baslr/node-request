@@ -1,0 +1,19 @@
+{
+  "name": "request",
+  "version": "1.0.0-beta1",
+  "description": "request simplified",
+  "main": "request.js",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/baslr/node-request.git"
+  },
+  "keywords": [
+    "request"
+  ],
+  "author": "Manuel Baesler",
+  "license": "AGPL-3.0",
+  "bugs": {
+    "url": "https://github.com/baslr/node-request/issues"
+  },
+  "homepage": "https://github.com/baslr/node-request#readme"
+}
