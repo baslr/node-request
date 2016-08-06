@@ -49,7 +49,7 @@ class Request {
         // console.log( JSON.stringify(headers, false, 2) );
         // console.log('- - - - - - - - - - - - - - - - - - - - - - - - - -');
 
-        const handler = reqOpts.externalHandler || this
+        const handler = reqOpts.externalHandler || this;
 
         if (err) {
             if (handler.onError) {
