@@ -55,7 +55,7 @@ class Request {
             if (handler.onError) {
                 handler.onError(reqOpts, cb, err, status, headers, body);
             } else {
-                console.log('Request: Error', e);
+                console.log('Request: Error', err);
                 cb(0, null, null);
             }
         } else {
