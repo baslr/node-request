@@ -59,6 +59,7 @@ class Request {
 
             if (reqOpts.retryOnError) {
                 handler[reqOpts.method.toLowerCase()](reqOpts, cb);
+                return;
             } // if
 
             console.log('Request: Error', err);
