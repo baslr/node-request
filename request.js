@@ -54,54 +54,61 @@ class Request {
         if (err) {
             if (handler.onError) {
                 handler.onError(reqOpts, cb, err, status, headers, body);
-            } else {
-                console.log('Request: Error', err);
-                cb(0, null, null);
-            }
-        } else {
-            // try status code ranges
-            if (200 <= status && status < 300 && handler.on2xx) {
-                handler.on2xx(reqOpts, cb, err, status, headers, body);
+                return;
+            } // if
+
+            if (reqOpts.retryOnError) {
+                handler[reqOpts.method.toLowerCase()](reqOpts, cb);
+            } // if
+
+            console.log('Request: Error', err);
+            cb(0, null, null);
+            return;
+        } // if
+
+        // try status code ranges
+        if (200 <= status && status < 300 && handler.on2xx) {
+            handler.on2xx(reqOpts, cb, err, status, headers, body);
+            return;
+        }
+
+        if(300 <= status && status < 400 && handler.on3xx) {
+            handler.on3xx(reqOpts, cb, err, status, headers, body);
+            return;
+        }
+
+        if(400 <= status && status < 500 && handler.on4xx) {
+            handler.on4xx(reqOpts, cb, err, status, headers, body);
+            return;
+        }
+
+        if(500 <= status && status < 600 && handler.on5xx) {
+            handler.on5xx(reqOpts, cb, err, status, headers, body);
+            return;
+        }
+
+        if(600 <= status && handler.on6xx) {
+            handler.on6xx(reqOpts, cb, err, status, headers, body);
+            return;
+        }
+
+        // try one specific status code
+        const onStatus = `on${status}`;
+
+        if (handler[onStatus]) {
+            handler[onStatus](reqOpts, cb, err, status, headers, body);
+            return;
+        } // if
+
+        if(500 <= status && status < 600) {
+            const enoughtTriesLeft = reqOpts.maxTries ? reqOpts.maxTries >= reqOpts.tries : true;
+            if (reqOpts.retryOn5xx && enoughtTriesLeft) {
+                handler[reqOpts.method.toLowerCase()](reqOpts, cb);
                 return;
             }
+        } // if
 
-            if(300 <= status && status < 400 && handler.on3xx) {
-                handler.on3xx(reqOpts, cb, err, status, headers, body);
-                return;
-            }
-
-            if(400 <= status && status < 500 && handler.on4xx) {
-                handler.on4xx(reqOpts, cb, err, status, headers, body);
-                return;
-            }
-
-            if(500 <= status && status < 600 && handler.on5xx) {
-                handler.on5xx(reqOpts, cb, err, status, headers, body);
-                return;
-            }
-
-            if(600 <= status && handler.on6xx) {
-                handler.on6xx(reqOpts, cb, err, status, headers, body);
-                return;
-            }
-
-            // try one specific status code
-            const onStatus = `on${status}`;
-
-            if (handler[onStatus]) {
-                handler[onStatus](reqOpts, cb, err, status, headers, body);
-            } else {
-                if(500 <= status && status < 600) {
-                    const enoughtTriesLeft = reqOpts.maxTries ? reqOpts.maxTries >= reqOpts.tries : true;
-                    if (reqOpts.retryOn5xx && enoughtTriesLeft) {
-                        handler[reqOpts.method.toLowerCase()](reqOpts, cb);
-                        return;
-                    }
-                } // if
-
-                cb(status, headers, body);
-            } // else
-        } // else
+        cb(status, headers, body);
     } // handleResponse()
 } // class
 
