@@ -87,8 +87,7 @@ module.exports = (opts, cb) => {
         opts.stream.pipe(req);
 
     } else if (opts.externalWrite) {
-        opts.externalWrite(req);
-
+        opts.externalWrite(req, reqOpts, reqId);
     } else {
         req.end();
     }
