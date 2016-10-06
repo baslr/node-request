@@ -3,16 +3,21 @@
 const zlib  =  require('zlib');
 
 module.exports = (opts, cb) => {
-    let reqError = false;
+    let doneCallback = false;
 
     if (opts.setContentLength && (opts.buffer instanceof Buffer)) {
         opts.headers['content-length'] = opts.buffer.length;
     } // if
-  
+
     const req = opts.con.request(opts);
   
     req.on('error', (e) => {
-        reqError = true;
+        if (doneCallback) {
+            console.log('RawRequest: req.on.error already called back');
+            return;
+        } // if
+        doneCallback = true;
+
         cb(e);
     });
 
@@ -36,10 +41,11 @@ module.exports = (opts, cb) => {
             }
         });
         res.on('end', () => {
-            if (reqError) {
-                console.log(`${opts.id} - Request: Response end doesn't callback because of a request error`);
+            if (doneCallback) {
+                console.log(`${opts.id} - Request: Response.end already called back`);
                 return;
             } // if
+            doneCallback = true;
 
             if (opts.method === 'HEAD') {
                 cb(null, res.statusCode, res.headers, buf);
