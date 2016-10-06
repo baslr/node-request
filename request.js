@@ -9,6 +9,8 @@ const rawRequest = require('./rawRequest');
 const httpAgent  = new http.Agent({  keepAlive: true });
 const httpsAgent = new https.Agent({ keepAlive: true });
 
+const log = require('./log');
+
 
 class Request {
     constructor(opts) {
@@ -33,6 +35,11 @@ class Request {
 
     post(opts, cb) { this.doRequest(opts, 'POST', cb); }
 
+    put(opts, cb) { this.doRequest(opts, 'PUT', cb); }
+
+    patch(opts, cb) { this.doRequest(opts, 'PATCH', cb); }
+
+    delete(opts, cb) { this.doRequest(opts, 'DELETE', cb); }
 
     doRequest(opts, method, cb) {
         const reqOpts = this.reqOpts(opts);
@@ -44,25 +51,24 @@ class Request {
     }
 
     handleResponse(reqOpts, cb, err, status, headers, body = Buffer.alloc(0)) {
-        // console.log('- - - - - - - - - - - - - - - - - - - - - - - - - -');
-        console.log(`${reqOpts.id} - ${reqOpts.method}:${reqOpts.hostname}${reqOpts.path} Tries: ${reqOpts.tries}, Status: ${status}, Length: ${body.length}`);
-        // console.log( JSON.stringify(headers, false, 2) );
-        // console.log('- - - - - - - - - - - - - - - - - - - - - - - - - -');
+        log.line(`${reqOpts.id} - ${reqOpts.method}:${reqOpts.hostname}${reqOpts.path} Tries: ${reqOpts.tries}, Status: ${status}, Length: ${body.length}`);
 
         const handler = reqOpts.externalHandler || this;
 
         if (err) {
             if (handler.onError) {
+                log.line(`${reqOpts.id} - Request: err handler.onError()`, err);
                 handler.onError(reqOpts, cb, err, status, headers, body);
                 return;
             } // if
 
             if (reqOpts.retryOnError) {
+                log.line(`${reqOpts.id} - Request: err retry`, err);
                 handler[reqOpts.method.toLowerCase()](reqOpts, cb);
                 return;
             } // if
 
-            console.log('Request: Error', err);
+            log.line(`${reqOpts.id} - Request: err cb()`, err);
             cb(0, null, null);
             return;
         } // if
@@ -97,6 +103,7 @@ class Request {
         const onStatus = `on${status}`;
 
         if (handler[onStatus]) {
+            log.line(`${reqOpts.id} - Request: handler[${onStatus}]()`);
             handler[onStatus](reqOpts, cb, err, status, headers, body);
             return;
         } // if
@@ -104,11 +111,13 @@ class Request {
         if(500 <= status && status < 600) {
             const enoughtTriesLeft = reqOpts.maxTries ? reqOpts.maxTries >= reqOpts.tries : true;
             if (reqOpts.retryOn5xx && enoughtTriesLeft) {
+                log.line(`${reqOpts.id} - Request: callback on 500 <= ${status} < 600`);
                 handler[reqOpts.method.toLowerCase()](reqOpts, cb);
                 return;
             }
         } // if
 
+        log.line(`${reqOpts.id} - Request: cb()`);
         cb(status, headers, body);
     } // handleResponse()
 } // class

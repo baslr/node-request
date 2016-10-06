@@ -1,8 +1,15 @@
 'use strict';
 
 const zlib  =  require('zlib');
+const crypto = require('crypto');
+
+const log = require('./log');
 
 module.exports = (opts, cb) => {
+    const reqId = crypto.randomBytes(4).toString('hex');
+    log.line(`${opts.id} - ${reqId} - RawRequest: do ${opts.method}`);
+
+
     let doneCallback = false;
 
     if (opts.setContentLength && (opts.buffer instanceof Buffer)) {
@@ -13,15 +20,18 @@ module.exports = (opts, cb) => {
   
     req.on('error', (e) => {
         if (doneCallback) {
-            console.log('RawRequest: req.on.error already called back');
+            log.line(`${opts.id} - ${reqId} - RawRequest: req.on.error doneCallback is true, return`);
             return;
         } // if
         doneCallback = true;
 
+        log.line(`${opts.id} - ${reqId} - RawRequest: req.on.error callback`, e);
         cb(e);
     });
 
     req.on('response', (res) => {
+        log.line(`${opts.id} - ${reqId} - RawRequest: req.on.response`);
+
         const length = Number(res.headers['content-length']);
         let buf;
         let i = 0;
@@ -41,8 +51,9 @@ module.exports = (opts, cb) => {
             }
         });
         res.on('end', () => {
+            log.line(`${opts.id} - ${reqId} - RawRequest: res.on.end`);
             if (doneCallback) {
-                console.log(`${opts.id} - Request: Response.end already called back`);
+                log.line(`${opts.id} - ${reqId} - RawRequest: res.on.end doneCallback is true, return`);
                 return;
             } // if
             doneCallback = true;
@@ -55,11 +66,13 @@ module.exports = (opts, cb) => {
             switch(res.headers['content-encoding']) {
                 case 'gzip':
                     zlib.unzip(buf, (err, buf) => {
+                        log.line(`${opts.id} - ${reqId} - RawRequest: res.on.end gzip zlib.unzip callback`);
                         cb(err, res.statusCode, res.headers, buf);
                     });
                     break;
 
                 default:
+                    log.line(`${opts.id} - ${reqId} - RawRequest: res.on.end default callback`);
                     cb(null, res.statusCode, res.headers, buf);
                     break;
             } // switch
