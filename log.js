@@ -2,15 +2,15 @@
 
 const fs = require('fs');
 
+if (process.env.logRequestEasy != 'true') {
+    module.exports.line = () => {};
+    return;
+}
+
 const stream = fs.createWriteStream('log.log', {flags:'a'});
 
 const logNow = module.exports.now = () => {
     stream.write(new Date().toISOString()+'\n');
-}
-
-if (process.env.log != 'true') {
-    module.exports.line = () => {};
-    return;
 }
 
 module.exports.line = (...args) => {
